@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Attendance</title>
+    <link rel="stylesheet" href="/css/register/register.css">
+    <script src="/javascript/qr2.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    
+
+</head>
+<body>
+<div class="wrapper">
+    <form action="/generate" method="POST" id="qrForm">
+        <h1>QR Code Generate</h1>
+        <div class="input1">
+            <input type="text" placeholder="Subject Name" name="subject" required autocomplete="new-subject">
+        </div>
+        <div class="input1">
+            <input type="text" placeholder="Teacher Name" name="teacher" autocomplete="new-teacher" required>
+        </div>
+        <div class="input1">
+            <input type="email" placeholder="Student Email" name="email" autocomplete="new-email" required>
+        </div>
+        <div class="input1">
+            <input type="password" placeholder="Password" name="password" autocomplete="new-password" required>
+        </div>
+        <label for="enable">Enable QR Code Generation</label>
+        <br><br>
+        <input type="checkbox" class="enable" name="enable" checked>
+        <button type="submit" class="btn">Generate QR Code</button>
+        <div class="register">
+            <p>Go to Home <a class="link1" href="/html/home/index4.html">Home</a></p>
+        </div>
+    </form>
+</div>
+<div id="qrCodeContainer">
+    <img class="qrCodeImage" id="qrCodeImage" name="qrImageData" src="" alt="QR Code Image">
+</div>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const qrCodeImage = document.getElementById('qrCodeImage');
+    const qrForm = document.getElementById('qrForm');
+
+    // Add event listener to the form submission
+    qrForm.addEventListener('submit', async (event) => {
+        event.preventDefault(); // Prevent the form from submitting the default way
+        await generateQR();
+    });
+
+    async function generateQR() {
+        const subjectInput = document.querySelector('input[name="subject"]');
+        const teacherInput = document.querySelector('input[name="teacher"]');
+        const emailInput = document.querySelector('input[name="email"]');
+        const passwordInput = document.querySelector('input[name="password"]');
+
+        // Get the input values
+        const subject = subjectInput.value;
+        const teacher = teacherInput.value;
+        const email = emailInput.value;
+        const password = passwordInput.value;
+
+        // Construct the data string for the QR code
+        const qrData = `Subject: ${subject}, Teacher: ${teacher}, Password: ${password}`;
+
+        // Fetch the QR code from the API
+        try {
+            const response = await fetch(`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(qrData)}`);
+
+            // Check if the response is successful
+            if (response.ok) {
+                // Set the src attribute of the image to the URL of the generated QR code
+                qrCodeImage.src = response.url;
+                console.log('QR code generated successfully.');
+
+                // Send the email with QR code
+                await sendEmail(email, response.url);
+            } else {
+                console.error('QR code generation failed:', response.statusText);
+                // Display an error message or handle the error
+            }
+        } catch (error) {
+            console.error('QR code generation failed:', error.message);
+            // Handle network errors
+        }
+    }
+
+    async function sendEmail(email, qrUrl) {
+        try {
+            const response = await fetch('/send-email', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ email, qrUrl, message: "Here is your QR code" }),
+            });
+
+            if (response.ok) {
+                console.log('Email sent successfully.');
+            } else {
+                console.error('Failed to send email:', response.statusText);
+            }
+        } catch (error) {
+            console.error('Error sending email:', error.message);
+        }
+    }
+});
+</script>
+</body>
+</html>
